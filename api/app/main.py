@@ -19,6 +19,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.post("/process")
 async def process_files(
     files: list[UploadFile] = File(...),
     background_tasks: BackgroundTasks = None
@@ -73,6 +74,7 @@ async def process_files(
 @app.get("/")
 def root():
     return {"message": "API para descarga y conversión de evidencias lista ✅"}
+
 
 
 
