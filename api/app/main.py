@@ -19,13 +19,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.post("/process")
-async def process_files(files: list[UploadFile] = File(...), background_tasks: BackgroundTasks = None):
+async def process_files(
+    files: list[UploadFile] = File(...),
+    background_tasks: BackgroundTasks = None
+):
     """
-    Recibe uno o varios archivos (CSV o Excel),
+    Recibe uno o varios archivos CSV/Excel,
     procesa las evidencias y devuelve un ZIP descargable.
     """
-    output_folder = "resultados"
     session_id = str(uuid.uuid4())
     input_dir = Path(tempfile.mkdtemp(prefix=f"input_{session_id}_"))
     output_dir = Path(tempfile.mkdtemp(prefix=f"output_{session_id}_"))
@@ -37,34 +38,34 @@ async def process_files(files: list[UploadFile] = File(...), background_tasks: B
             with open(file_path, "wb") as f:
                 shutil.copyfileobj(file.file, f)
 
-        # Verificar dependencias
+        # Inicializar descargador
         deps_ok = check_dependencies()
-        downloader = EvidenciasDownloader(
-            max_workers=6,
-            convert_files=deps_ok
-        )
+        downloader = EvidenciasDownloader(max_workers=6, convert_files=deps_ok)
 
-        # Procesar los archivos
+        # Procesar archivos en input_dir y guardar en output_dir
         downloader.process_folder(str(input_dir), str(output_dir))
 
-        # Crear ZIP con los resultados
+        # Crear ZIP del output_dir
         zip_path = Path(tempfile.gettempdir()) / f"resultados_{session_id}.zip"
         with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
-            for root, _, files in os.walk(output_dir):
-                for file in files:
+            for root, _, files_in_dir in os.walk(output_dir):
+                for file in files_in_dir:
                     file_path = Path(root) / file
                     arcname = file_path.relative_to(output_dir)
                     zipf.write(file_path, arcname)
 
-        # Limpieza automática después de enviar respuesta
+        # Programar limpieza automática después de enviar respuesta
         if background_tasks:
             background_tasks.add_task(shutil.rmtree, input_dir, ignore_errors=True)
             background_tasks.add_task(shutil.rmtree, output_dir, ignore_errors=True)
             background_tasks.add_task(os.remove, zip_path)
 
-        zip_path = "resultados.zip"
-        shutil.make_archive("resultados", 'zip', output_folder)
-        return FileResponse(zip_path, media_type="application/zip", filename="resultados.zip")
+        # Devolver el ZIP correcto
+        return FileResponse(
+            path=zip_path,
+            media_type="application/zip",
+            filename="resultados.zip"
+        )
 
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
@@ -72,6 +73,7 @@ async def process_files(files: list[UploadFile] = File(...), background_tasks: B
 @app.get("/")
 def root():
     return {"message": "API para descarga y conversión de evidencias lista ✅"}
+
 
 
 
