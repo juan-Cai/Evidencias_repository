@@ -7,3 +7,4 @@ pillow
 pillow-heif
 pdf2image
 urllib3
+python-multipart
