@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+pandas
+requests
+openpyxl
+pillow
+pillow-heif
+pdf2image
+urllib3

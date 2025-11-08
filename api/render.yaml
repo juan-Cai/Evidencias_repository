@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: evidencias-api
+    env: docker
+    plan: free
+    autoDeploy: true
