@@ -24,6 +24,7 @@ async def process_files(files: list[UploadFile] = File(...), background_tasks: B
     Recibe uno o varios archivos (CSV o Excel),
     procesa las evidencias y devuelve un ZIP descargable.
     """
+    output_folder = "resultados"
     session_id = str(uuid.uuid4())
     input_dir = Path(tempfile.mkdtemp(prefix=f"input_{session_id}_"))
     output_dir = Path(tempfile.mkdtemp(prefix=f"output_{session_id}_"))
@@ -60,11 +61,9 @@ async def process_files(files: list[UploadFile] = File(...), background_tasks: B
             background_tasks.add_task(shutil.rmtree, output_dir, ignore_errors=True)
             background_tasks.add_task(os.remove, zip_path)
 
-        return FileResponse(
-            path=zip_path,
-            filename=f"Evidencias_{session_id}.zip",
-            media_type="application/zip"
-        )
+        zip_path = "resultados.zip"
+        shutil.make_archive("resultados", 'zip', output_folder)
+        return FileResponse(zip_path, media_type="application/zip", filename="resultados.zip")
 
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
@@ -72,4 +71,5 @@ async def process_files(files: list[UploadFile] = File(...), background_tasks: B
 @app.get("/")
 def root():
     return {"message": "API para descarga y conversión de evidencias lista ✅"}
+
 
