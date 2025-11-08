@@ -1,5 +1,6 @@
 from fastapi import FastAPI, File, UploadFile, BackgroundTasks
 from fastapi.responses import FileResponse, JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from downloader import EvidenciasDownloader, check_dependencies
 from pathlib import Path
 import shutil
@@ -71,5 +72,6 @@ async def process_files(files: list[UploadFile] = File(...), background_tasks: B
 @app.get("/")
 def root():
     return {"message": "API para descarga y conversión de evidencias lista ✅"}
+
 
 
