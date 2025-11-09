@@ -117,7 +117,6 @@ async def process_folder_endpoint(
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
 
-
 @app.get("/")
 def root():
     return {"message": "API para descarga y conversión de evidencias lista ✅"}
