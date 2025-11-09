@@ -3,6 +3,7 @@ import requests
 import os
 from urllib.parse import urlparse
 import time
+from datetime import datetime
 from pathlib import Path
 import concurrent.futures
 import threading
@@ -424,77 +425,70 @@ class EvidenciasDownloader:
         
         return None
 
-    def process_folder(self, input_folder: str, output_folder: str = "Evidencias_Descargadas") -> None:
-        """Procesa todos los archivos CSV y Excel de una carpeta"""
+    def process_folder(self, input_folder: str, output_folder: str = None) -> None:
+        """
+        Procesa todos los archivos CSV y Excel dentro de una carpeta de entrada.
+        Crea subcarpetas dentro del directorio de salida para cada archivo.
+        """
+    
+        # 🧩 Si no se pasa output_folder, crear uno temporal dentro de /tmp
+        if output_folder is None:
+            base_tmp = os.getenv("TMPDIR", "/tmp")
+            output_folder = os.path.join(base_tmp, "Evidencias_Descargadas")
+    
+        # 📁 Asegurarse de que las carpetas existen
+        os.makedirs(output_folder, exist_ok=True)
+    
+        # 🚨 Validar existencia de la carpeta de entrada
         if not os.path.exists(input_folder):
             self.logger.error(f"❌ La carpeta {input_folder} no existe")
             return
-        
-        # Buscar archivos CSV y Excel
+    
+        # 🔍 Buscar archivos CSV y Excel
         supported_extensions = ['.csv', '.xlsx', '.xls']
-        files_to_process = []
-        
-        for file in os.listdir(input_folder):
-            file_path = os.path.join(input_folder, file)
-            if os.path.isfile(file_path):
-                file_ext = os.path.splitext(file)[1].lower()
-                if file_ext in supported_extensions:
-                    files_to_process.append(file_path)
-        
+        files_to_process = [
+            os.path.join(input_folder, f)
+            for f in os.listdir(input_folder)
+            if os.path.isfile(os.path.join(input_folder, f))
+            and os.path.splitext(f)[1].lower() in supported_extensions
+        ]
+    
         if not files_to_process:
             self.logger.warning(f"⚠️ No se encontraron archivos CSV o Excel en {input_folder}")
             return
-        
-        self.logger.info(f"🔍 Encontrados {len(files_to_process)} archivos para procesar")
-        
-        # Procesar cada archivo
+    
+        self.logger.info(f"🔍 Encontrados {len(files_to_process)} archivos para procesar en {input_folder}")
+    
         all_tasks = []
+    
+        # 🔄 Procesar cada archivo
         for file_path in files_to_process:
-            self.logger.info(f"📂 Procesando: {os.path.basename(file_path)}")
-            
+            file_name = os.path.splitext(os.path.basename(file_path))[0]
+            self.logger.info(f"📂 Procesando: {file_name}")
+    
             df = self.read_file(file_path)
-            if df is not None:
-                # Crear subcarpeta para este archivo
-                file_name = os.path.splitext(os.path.basename(file_path))[0]
-                file_output_folder = os.path.join(output_folder, file_name)
-                
-                tasks = self.prepare_download_tasks(df, file_output_folder)
-                all_tasks.extend(tasks)
-                self.logger.info(f"📋 Preparadas {len(tasks)} tareas de descarga para {os.path.basename(file_path)}")
-        
+            if df is None:
+                self.logger.warning(f"⚠️ No se pudo leer el archivo {file_path}")
+                continue
+    
+            # Crear subcarpeta específica para el archivo
+            file_output_folder = os.path.join(output_folder, file_name)
+            os.makedirs(file_output_folder, exist_ok=True)
+    
+            # Preparar tareas
+            tasks = self.prepare_download_tasks(df, file_output_folder)
+            all_tasks.extend(tasks)
+            self.logger.info(f"📋 Preparadas {len(tasks)} tareas de descarga para {file_name}")
+    
+        # 🧵 Ejecutar descargas y mostrar estadísticas
         if all_tasks:
-            # Ejecutar todas las descargas
             start_time = datetime.now()
             self.download_with_threads(all_tasks)
             end_time = datetime.now()
-            
-            # Mostrar estadísticas finales
             self.print_final_stats(start_time, end_time, output_folder)
         else:
             self.logger.warning("⚠️ No se generaron tareas de descarga")
 
-    def process_single_file(self, file_path: str, output_folder: str = "Evidencias_Descargadas") -> None:
-        """Procesa un único archivo CSV o Excel"""
-        if not os.path.exists(file_path):
-            self.logger.error(f"❌ El archivo {file_path} no existe")
-            return
-        
-        self.logger.info(f"📂 Procesando archivo: {os.path.basename(file_path)}")
-        
-        df = self.read_file(file_path)
-        if df is None:
-            return
-        
-        tasks = self.prepare_download_tasks(df, output_folder)
-        
-        if tasks:
-            start_time = datetime.now()
-            self.download_with_threads(tasks)
-            end_time = datetime.now()
-            
-            self.print_final_stats(start_time, end_time, output_folder)
-        else:
-            self.logger.warning("⚠️ No se generaron tareas de descarga")
 
     def print_final_stats(self, start_time: datetime, end_time: datetime, output_folder: str):
         """Imprime estadísticas finales del proceso"""
@@ -595,3 +589,4 @@ def main():
         print(f"👉 Crea la carpeta '{INPUT_FOLDER}' y coloca tus archivos CSV/Excel ahí.")
         print("📋 Archivos soportados: .csv, .xlsx, .xls")
         print("🔄 Conversiones automáticas: HEIC → JPG, PDF → JPG")
+
