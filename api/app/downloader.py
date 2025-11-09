@@ -558,7 +558,6 @@ def main():
     
     # Configuración
     MAX_WORKERS = 8  # Número de hilos concurrentes
-    INPUT_FOLDER = "input_files"  # Carpeta con archivos CSV/Excel
     OUTPUT_FOLDER = "Evidencias_Descargadas"  # Carpeta de salida
     CONVERT_FILES = deps_ok  # Solo convertir si las dependencias están disponibles
     
@@ -572,21 +571,3 @@ def main():
         convert_files=CONVERT_FILES
     )
     
-    # Opción 1: Procesar una carpeta completa
-    if os.path.exists(INPUT_FOLDER):
-        print(f"📂 Procesando carpeta: {INPUT_FOLDER}")
-        downloader.process_folder(INPUT_FOLDER, OUTPUT_FOLDER)
-    
-    # Opción 2: Procesar archivo individual (descomenta si prefieres esto)
-    # single_file = "evidencias.csv"
-    # if os.path.exists(single_file):
-    #     print(f"📄 Procesando archivo: {single_file}")
-    #     downloader.process_single_file(single_file, OUTPUT_FOLDER)
-    
-    # Si no encuentra archivos, mostrar ayuda
-    if not os.path.exists(INPUT_FOLDER):
-        print(f"⚠️ La carpeta '{INPUT_FOLDER}' no existe.")
-        print(f"👉 Crea la carpeta '{INPUT_FOLDER}' y coloca tus archivos CSV/Excel ahí.")
-        print("📋 Archivos soportados: .csv, .xlsx, .xls")
-        print("🔄 Conversiones automáticas: HEIC → JPG, PDF → JPG")
-
